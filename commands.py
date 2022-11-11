@@ -20,10 +20,14 @@ async def start(message: types.Message):
     players_candies = 0
     comp_candies = 0
     first_turn_fail = False
+    print(message.text)
+    print(message.from_user.id)
+    print(message.from_user.first_name)
     await bot.send_message(message.from_user.id,
                            f'Ну что, {message.from_user.first_name}, сыграем в конфеты? '
                            f'У меня на столе лежит {candies} конфет. '
                            f'За один ход ты можешь взять от 1 до {max_candies_in_round} конфет. '
+                           f'Кто заберет последние конфеты, тот и выиграл. '
                            f'Введи команду /roll для определения очередности хода. '
                            f'1 - ходишь первым ты, 0 - я.')
 
@@ -67,46 +71,54 @@ async def anything(message: types.Message):
                 candies -= players_candies
                 if candies <= 0:
                     await bot.send_message(message.from_user.id,
-                                           'Поздравляю! Ты выиграл! Все конфеты твои!')
+                                           'Поздравляю! Ты выиграл! Все конфеты твои! '
+                                           'Чтобы начать новую игру введи /start')
+                else:
+                    await bot.send_message(message.from_user.id,
+                                           f'Ты взял {players_candies} конфет. '
+                                           f'Осталось {candies} конфет! Моя очередь ходить!')
 
-                await bot.send_message(message.from_user.id,
-                                       f'Ты взял {players_candies} конфет. Осталось {candies} конфет! Моя очередь ходить!')
+                    if first_turn_fail:
+                        comp_candies = candies % (max_candies_in_round + 1)
+                        if comp_candies > candies:
+                            comp_candies = candies
+                            candies = 0
+                            await bot.send_message(message.from_user.id,
+                                                   f'Я взял {comp_candies} конфет! Конфет не осталось! '
+                                                   f'Я выиграл! Чтобы начать новую игру введи /start')
+                        elif comp_candies == 0 or comp_candies > 28:
+                            comp_candies = 1
+                            first_turn_fail = True
+                        else:
+                            first_turn_fail = False
+                        candies -= comp_candies
 
-                if first_turn_fail:
-                    comp_candies = candies % (max_candies_in_round + 1)
-                    if comp_candies > candies:
+                        await bot.send_message(message.from_user.id,
+                                               f'Я взял {comp_candies} конфет! Осталось {candies}! '
+                                               f'Твоя очередь ходить!')
+
+                    elif (candies > (max_candies_in_round * 2)) or (candies == max_candies_in_round + 1):
+                        comp_candies = max_candies_in_round + 1 - players_candies
+                        candies -= comp_candies
+                        await bot.send_message(message.from_user.id,
+                                               f'Я взял {comp_candies} конфет! Осталось {candies}! '
+                                               f'Твоя очередь ходить!')
+
+                    elif (max_candies_in_round + 1) < candies < (max_candies_in_round * 2 + 1):
+                        comp_candies = candies - max_candies_in_round - 1
+                        candies -= comp_candies
+                        await bot.send_message(message.from_user.id,
+                                               f'Я взял {comp_candies} конфет! Осталось {candies}! '
+                                               f'Твоя очередь ходить!')
+
+                    else:
                         comp_candies = candies
                         candies = 0
                         await bot.send_message(message.from_user.id,
-                                               f'Я взял {comp_candies} конфет! Конфет не осталось! Я выиграл!')
-                    elif comp_candies == 0 or comp_candies > 28:
-                        comp_candies = 1
-                        first_turn_fail = True
-                    else:
-                        first_turn_fail = False
-                    candies -= comp_candies
+                                               f'Я взял {comp_candies} конфет! Конфет не осталось! Я выиграл! '
+                                               f'Чтобы начать новую игру введи /start')
 
-                    await bot.send_message(message.from_user.id,
-                                           f'Я взял {comp_candies} конфет! Осталось {candies}! Твоя очередь ходить!')
 
-                elif (candies > (max_candies_in_round * 2)) or (candies == max_candies_in_round + 1):
-                    comp_candies = max_candies_in_round + 1 - players_candies
-                    candies -= comp_candies
-                    await bot.send_message(message.from_user.id,
-                                           f'Я взял {comp_candies} конфет! Осталось {candies}! Твоя очередь ходить!')
-
-                elif (max_candies_in_round + 1) < candies < (max_candies_in_round * 2 + 1):
-                    comp_candies = candies - max_candies_in_round - 1
-                    candies -= comp_candies
-                    await bot.send_message(message.from_user.id,
-                                           f'Я взял {comp_candies} конфет! Осталось {candies}! Твоя очередь ходить!')
-
-                else:
-                    comp_candies = candies
-                    candies = 0
-                    await bot.send_message(message.from_user.id,
-                                           f'Я взял {comp_candies} конфет! Конфет не осталось! Я выиграл!')
         else:
             await bot.send_message(message.from_user.id,
                                    'Игра окончена! Чтобы начать новую игру введи /start')
-
